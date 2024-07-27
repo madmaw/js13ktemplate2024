@@ -1,0 +1,44 @@
+// cSpell Settings
+{
+  // Version of the setting file.  Always 0.2
+  "version": "0.2",
+  // language - current active spelling language
+  "language": "en",
+  // words - list of words to be always considered correct
+  "words": [
+      "lingui",
+      "millis",
+      "mediapipe",
+      "keypoints",
+      "keypoint",
+      "autorun",
+      "timestep",
+      "slerp",
+      "unrotate",
+      "unrotated",
+      "angvel",
+      "dprint",
+      "colorjs",
+      "typecheck",
+      "overlayer",
+      "scroller",
+      "glslx",
+      "glsl",
+      "evanw",
+      "twgl",
+      "centerer",
+      "instantiator",
+      "instantiators",
+      "autofix",
+      "iife",
+      "roadroller",
+      "copyfiles",
+      "advzip"
+  ],
+  // flagWords - list of words to be always considered incorrect
+  // This is useful for offensive words and common spelling errors.
+  // For example "hte" should be "the"
+  "flagWords": [
+      "hte"
+  ]
+}
