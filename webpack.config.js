@@ -5,7 +5,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 // import { type Configuration } from 'webpack';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const ClosurePlugin = require('closure-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ClosureWebpackPlugin = require('closure-webpack-plugin');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -18,12 +20,24 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const config = {
   target: 'web',
   entry: './src/index.ts',
+  devtool: 'source-map',
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.tsx?$/i,
         use: 'ts-loader',
         exclude: /node_modules/,
+      },
+      {
+        test: /\.(png|jpg|gif|bmp)$/i,
+        use: [
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 8192,
+            },
+          },
+        ],
       },
     ],
   },
@@ -43,12 +57,12 @@ const config = {
   },
   optimization: {
     minimizer: [
-      new ClosurePlugin({
+      new ClosureWebpackPlugin({
         mode: 'STANDARD',
         // more fully-featured? Also doesn't work
         // platform: 'java',
       }, {
-        externs: path.resolve(__dirname, 'src/externs.js'),
+        externs: path.resolve(__dirname, 'externs.js'),
         compilation_level: 'ADVANCED',
         module_resolution: 'WEBPACK',
       }),
@@ -89,6 +103,14 @@ const config = {
         ],
       },
     ]),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: './assets/b.bmp',
+          to: 'b.bmp',
+        },
+      ],
+    }),
     // new HtmlInlineScriptPlugin(),
   ],
 };

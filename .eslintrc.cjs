@@ -25,6 +25,8 @@ module.exports = {
     'node_modules',
     '**/locales/**',
     'public/**',
+    'src/shaders',
+    'externs.js',
   ],
   plugins: [
     'dprint-integration',
@@ -98,13 +100,7 @@ module.exports = {
         allowMultiplePropertiesPerLine: false,
       },
     ],
-    'array-bracket-newline': [
-      'warn',
-      {
-        multiline: true,
-        minItems: 2,
-      },
-    ],
+    'array-bracket-newline': 'off',
     'array-element-newline': [
       'warn',
       {

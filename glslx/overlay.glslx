@@ -1,0 +1,25 @@
+precision lowp float;
+uniform sampler2D u_background;
+uniform sampler2D u_texture;
+uniform mat3 u_modelPositionToTextureCoord;
+uniform mat3 u_modelPositionToScreenPosition;
+uniform mat3 u_screenPositionToBackgroundCoord;
+
+attribute vec3 a_modelPosition;
+
+varying vec3 v_textureCoord;
+varying vec3 v_backgroundCoord;
+
+export void vertex() {
+  v_textureCoord = u_modelPositionToTextureCoord * a_modelPosition;
+  vec3 screenPosition = u_modelPositionToScreenPosition * a_modelPosition;
+  v_backgroundCoord = u_screenPositionToBackgroundCoord * screenPosition;
+  gl_Position = vec4(screenPosition, 1);
+}
+
+export void fragment() {
+  vec4 textureColor = texture2D(u_texture, v_textureCoord.xy);
+  vec4 backgroundColor = texture2D(u_background, v_backgroundCoord.xy);
+  vec3 color = mix(backgroundColor.rgb, textureColor.rgb, textureColor.a);
+  gl_FragColor = vec4(color, 1);
+}
