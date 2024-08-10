@@ -152,12 +152,12 @@ I.onload = function () {
     return fb;
   });
 
+  gl.clearColor(0, 0, 0, 0);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, Z.width, Z.height);
-  gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  let millis = 1000;
+  let count = 0;
 
   function update() {
     const m = multiply(
@@ -205,8 +205,8 @@ I.onload = function () {
     gl.uniform1i(uniformBackground, zCopyIndex);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    millis *= 1.5;
-    setTimeout(update, millis);
+    count++;
+    setTimeout(update, 1000 * count);
   }
 
   update();

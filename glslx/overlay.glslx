@@ -28,5 +28,5 @@ export void fragment() {
   vec3 normal = vec3(textureColor.rg - vec2(.5), 1);
   float light = max(0., dot(normal, u_lightNormal) * .5 + .5);
   vec3 color = mix(backgroundColor.rgb, pow(paletteColor.rgb * light, vec3(.5)), paletteColor.a);
-  gl_FragColor = vec4(color, 1);
+  gl_FragColor = vec4(color, 1. - (1. - paletteColor.a) * (1. - backgroundColor.a));
 }

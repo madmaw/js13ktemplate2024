@@ -26,6 +26,7 @@ export function compileProgram([
 ]: Program, discardDrawingBuffer: Booleanish): CompiledProgram {
   const gl = c.getContext('webgl', {
     preserveDrawingBuffer: !discardDrawingBuffer,
+    alpha: true,
   })!;
 
   const [
