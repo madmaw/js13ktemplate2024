@@ -22,7 +22,7 @@ export function compileProgram([
   uniforms,
   attributes,
   attributeValues,
-  textureData,
+  texturesData,
 ]: Program, discardDrawingBuffer: Booleanish): CompiledProgram {
   const gl = c.getContext('webgl', {
     preserveDrawingBuffer: !discardDrawingBuffer,
@@ -88,7 +88,7 @@ export function compileProgram([
   });
   gl.useProgram(program);
   // create the textures
-  const textures = textureData.map(function (textureData, i) {
+  const textures = texturesData.map(function (textureData, i) {
     const texture = gl.createTexture()!;
     gl.activeTexture(gl.TEXTURE0 + i);
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -100,7 +100,9 @@ export function compileProgram([
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     // TODO make filter configurable (images = nearest, effects = linear)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    const p = textureData ? gl.NEAREST : gl.LINEAR;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, p);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, p);
     return texture;
   });
   return [

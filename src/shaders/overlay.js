@@ -1,9 +1,11 @@
-export const GLSLX_SOURCE_VERTEX = "precision lowp float;\n\nuniform mat3 u_modelPositionToTextureCoord, u_modelPositionToScreenPosition, u_screenPositionToBackgroundCoord;\nattribute vec3 a_modelPosition;\nvarying vec3 b, c;\n\nvoid main() {\n  b = u_modelPositionToTextureCoord * a_modelPosition;\n  vec3 a = u_modelPositionToScreenPosition * a_modelPosition;\n  c = u_screenPositionToBackgroundCoord * a, gl_Position = vec4(a, 1);\n}\n"
-export const GLSLX_SOURCE_FRAGMENT = "precision lowp float;\n\nuniform sampler2D u_background, u_texture;\nvarying vec3 b, c;\n\nvoid main() {\n  vec4 a = texture2D(u_texture, b.xy), d = texture2D(u_background, c.xy);\n  vec3 e = mix(d.rgb, a.rgb, a.a);\n  gl_FragColor = vec4(e, 1);\n}\n"
+export const GLSLX_SOURCE_VERTEX = "precision lowp float;\n\nuniform mat3 u_modelPositionToTextureCoord, u_modelPositionToScreenPosition, u_screenPositionToBackgroundCoord;\nattribute vec3 a_modelPosition;\nvarying vec3 c, d;\n\nvoid main() {\n  c = u_modelPositionToTextureCoord * a_modelPosition;\n  vec3 a = u_modelPositionToScreenPosition * a_modelPosition;\n  d = u_screenPositionToBackgroundCoord * a, gl_Position = vec4(a, 1);\n}\n"
+export const GLSLX_SOURCE_FRAGMENT = "precision lowp float;\n\nuniform sampler2D u_background, u_texture;\nuniform vec4 u_palette[4];\nuniform vec3 u_lightNormal;\nvarying vec3 c, d;\n\nvoid main() {\n  vec4 a = texture2D(u_texture, c.xy), e = texture2D(u_background, d.xy), f = mix(u_palette[0], u_palette[1], a.b), g = mix(u_palette[2], u_palette[3], a.b), b = mix(f, g, max(0.0, a.a - 0.5) * 2.0);\n  vec3 h = vec3(a.rg - vec2(0.5), 1);\n  float i = max(0.0, dot(h, u_lightNormal) * 0.5 + 0.5);\n  vec3 j = mix(e.rgb, pow(b.rgb * i, vec3(0.5)), b.a);\n  gl_FragColor = vec4(j, 1);\n}\n"
 
+export const GLSLX_NAME_U_PALETTE = "u_palette"
 export const GLSLX_NAME_A_MODEL_POSITION = "a_modelPosition"
 export const GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION = "u_modelPositionToScreenPosition"
 export const GLSLX_NAME_U_BACKGROUND = "u_background"
 export const GLSLX_NAME_U_TEXTURE = "u_texture"
+export const GLSLX_NAME_U_LIGHT_NORMAL = "u_lightNormal"
 export const GLSLX_NAME_U_MODEL_POSITION_TO_TEXTURE_COORD = "u_modelPositionToTextureCoord"
 export const GLSLX_NAME_U_SCREEN_POSITION_TO_BACKGROUND_COORD = "u_screenPositionToBackgroundCoord"

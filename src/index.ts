@@ -6,11 +6,14 @@ import {
 } from 'math/mat3';
 import { compileProgram } from 'util/webgl';
 // import b from '../assets/b.bmp';
+import { normalize } from 'math/vec';
 import {
   GLSLX_NAME_A_MODEL_POSITION,
   GLSLX_NAME_U_BACKGROUND,
+  GLSLX_NAME_U_LIGHT_NORMAL,
   GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION,
   GLSLX_NAME_U_MODEL_POSITION_TO_TEXTURE_COORD,
+  GLSLX_NAME_U_PALETTE,
   GLSLX_NAME_U_SCREEN_POSITION_TO_BACKGROUND_COORD,
   GLSLX_NAME_U_TEXTURE,
   GLSLX_SOURCE_FRAGMENT,
@@ -64,6 +67,8 @@ I.onload = function () {
         GLSLX_NAME_U_MODEL_POSITION_TO_TEXTURE_COORD,
         GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION,
         GLSLX_NAME_U_SCREEN_POSITION_TO_BACKGROUND_COORD,
+        GLSLX_NAME_U_PALETTE,
+        GLSLX_NAME_U_LIGHT_NORMAL,
       ],
       [GLSLX_NAME_A_MODEL_POSITION],
       [square],
@@ -86,12 +91,15 @@ I.onload = function () {
         uniformModelPositionToTextureCoord,
         uniformModelPositionToScreenPosition,
         uniformScreenPositionToBackgroundCoord,
+        uniformPalette,
+        uniformLightNormal,
       ],
       [
         zCopyTexture,
         zPreviousCopyTexture,
-        // imageTexture,
-        // transparentTexture
+        // image texture,
+        // pixelated image texture
+        // transparent texture
       ],
     ],
   ] = programs.map(compileProgram);
@@ -102,6 +110,28 @@ I.onload = function () {
     scale(.5, .5),
     translate(1, 1),
   ));
+  gl.uniform4fv(uniformPalette, [
+    // 0 transparent
+    .5,
+    .5,
+    .5,
+    0,
+    // 1 yellow
+    .6,
+    .6,
+    0,
+    1,
+    // 2 dark
+    .2,
+    .2,
+    .2,
+    1,
+    // 3 metal
+    .2,
+    .4,
+    .8,
+    1,
+  ]);
 
   const [
     zCopyFramebuffer,
@@ -122,20 +152,35 @@ I.onload = function () {
     return fb;
   });
 
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, Z.width, Z.height);
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  setInterval(function () {
+  let millis = 1000;
+
+  function update() {
     const m = multiply(
-      translate(-Math.random(), 1 - Math.random()),
-      scale(1, -1),
+      translate(
+        -Math.round(Math.random() * WIDTH) / WIDTH,
+        1 - Math.round(Math.random() * HEIGHT) / HEIGHT,
+      ),
+      scale(3, -3),
     );
     // console.log(m, transformMat3([0, 0], m));
     gl.uniformMatrix3fv(
       uniformModelPositionToScreenPosition,
       false,
       m,
+    );
+
+    gl.uniform3fv(
+      uniformLightNormal,
+      normalize([
+        Math.random() * 2 - 1,
+        Math.random() * 2 - 1,
+        Math.random() * 2 - 1,
+      ]),
     );
 
     // update the copy
@@ -159,6 +204,11 @@ I.onload = function () {
     gl.uniform1i(uniformTexture, 3);
     gl.uniform1i(uniformBackground, zCopyIndex);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }, 1000);
+
+    millis *= 1.5;
+    setTimeout(update, millis);
+  }
+
+  update();
 };
 I.src = 'c.png';
