@@ -17,6 +17,9 @@ import {
   GLSLX_SOURCE_VERTEX,
 } from './shaders/overlay';
 
+const WIDTH = 256;
+const HEIGHT = 256;
+
 I.onload = function () {
   const square = [
     // stride
@@ -38,11 +41,14 @@ I.onload = function () {
     1,
     1,
   ] as const;
+  const transparent = document.createElement('canvas');
+  transparent.width = 1;
+  transparent.height = 1;
   const canvases = [Z];
   function resize() {
     canvases.map(function (canvas) {
-      canvas.width = innerWidth;
-      canvas.height = innerHeight;
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
     });
   }
   onresize = resize;
@@ -62,12 +68,16 @@ I.onload = function () {
       [GLSLX_NAME_A_MODEL_POSITION],
       [square],
       [
+        0,
+        0,
         I,
-        Z,
+        transparent,
       ],
     ],
   ] as const;
 
+  const zCopyIndex = 0;
+  const zPreviousCopyIndex = 1;
   const [
     [
       [
@@ -78,26 +88,43 @@ I.onload = function () {
         uniformScreenPositionToBackgroundCoord,
       ],
       [
-        imageTexture,
-        backgroundTexture,
+        zCopyTexture,
+        zPreviousCopyTexture,
+        // imageTexture,
+        // transparentTexture
       ],
     ],
   ] = programs.map(compileProgram);
-  const gl = Z.getContext('webgl', {
-    preserveDrawingBuffer: true,
-  })!;
-  gl.clearColor(0, 0, 0, 0.5);
+  const gl = Z.getContext('webgl')!;
 
   gl.uniformMatrix3fv(uniformModelPositionToTextureCoord, false, IDENTITY);
-  gl.uniformMatrix3fv(uniformScreenPositionToBackgroundCoord, false, IDENTITY);
+  gl.uniformMatrix3fv(uniformScreenPositionToBackgroundCoord, false, multiply(
+    scale(.5, .5),
+    translate(1, 1),
+  ));
 
-  // gl.activeTexture(gl.TEXTURE0);
-  // gl.bindTexture(gl.TEXTURE_2D, imageTexture);
-  gl.uniform1i(uniformTexture, 0);
+  const [
+    zCopyFramebuffer,
+    zPreviousCopyFramebuffer,
+  ] = [
+    zCopyTexture,
+    zPreviousCopyTexture,
+  ].map(function (backgroundTexture) {
+    const fb = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      backgroundTexture,
+      0,
+    );
+    return fb;
+  });
 
-  // gl.activeTexture(gl.TEXTURE1);
-  // gl.bindTexture(gl.TEXTURE_2D, backgroundTexture);
-  gl.uniform1i(uniformBackground, 1);
+  gl.viewport(0, 0, Z.width, Z.height);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
   setInterval(function () {
     const m = multiply(
@@ -111,8 +138,27 @@ I.onload = function () {
       m,
     );
 
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    // update the copy
+    gl.activeTexture(gl.TEXTURE0 + zCopyIndex);
+    gl.bindTexture(gl.TEXTURE_2D, zCopyTexture);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, zCopyFramebuffer);
+
+    gl.uniform1i(uniformTexture, 2);
+    gl.uniform1i(uniformBackground, zPreviousCopyIndex);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // render to the screen
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // update the previous copy
+    gl.activeTexture(gl.TEXTURE0 + zPreviousCopyIndex);
+    gl.bindTexture(gl.TEXTURE_2D, zPreviousCopyTexture);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, zPreviousCopyFramebuffer);
+
+    gl.uniform1i(uniformTexture, 3);
+    gl.uniform1i(uniformBackground, zCopyIndex);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }, 1000);
 };
-I.src = 'b.bmp';
+I.src = 'c.png';

@@ -69,13 +69,8 @@ module.exports = {
     'no-console': ['warn'],
     'no-alert': ['warn'],
     'no-debugger': ['warn'],
-    eqeqeq: [
-      'warn',
-      'always',
-      {
-        null: 'never',
-      },
-    ],
+    eqeqeq: 'off',
+    'no-sparse-arrays': 'off',
     'comma-dangle': [
       'warn',
       {

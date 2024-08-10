@@ -1,3 +1,8 @@
+import {
+  type Booleanish,
+  type Falsey,
+} from 'types';
+
 export type Program = readonly [
   HTMLCanvasElement, // target canvas
   string, // vertex shader
@@ -5,7 +10,7 @@ export type Program = readonly [
   readonly string[], // uniforms
   readonly string[], // attributes
   readonly (readonly [number, ...number[]])[], // buffer attribute values
-  readonly (HTMLCanvasElement | HTMLImageElement)[],
+  readonly (HTMLCanvasElement | HTMLImageElement | Falsey)[],
 ];
 
 export type CompiledProgram = readonly [readonly WebGLUniformLocation[], readonly WebGLTexture[]];
@@ -18,8 +23,10 @@ export function compileProgram([
   attributes,
   attributeValues,
   textureData,
-]: Program): CompiledProgram {
-  const gl = c.getContext('webgl')!;
+]: Program, discardDrawingBuffer: Booleanish): CompiledProgram {
+  const gl = c.getContext('webgl', {
+    preserveDrawingBuffer: !discardDrawingBuffer,
+  })!;
 
   const [
     vertexShader,
@@ -85,11 +92,15 @@ export function compileProgram([
     const texture = gl.createTexture()!;
     gl.activeTexture(gl.TEXTURE0 + i);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData);
+    if (textureData) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData);
+    } else {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, c.width, c.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     // TODO make filter configurable (images = nearest, effects = linear)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     return texture;
   });
   return [
