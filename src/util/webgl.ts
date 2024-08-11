@@ -1,27 +1,40 @@
 import { type Truthy } from 'types';
 
-export type Program = readonly [
+export type StepRenderer = (
+  inputTextureIndex: number,
+  outputTextureIndex: number,
+) => void;
+
+export type CompiledStepRenderer = (
+  step: CompiledStep,
+  inputTextureIndex: number,
+  outputTextureIndex: number,
+) => void;
+
+export type StepDefinition = readonly [
   string, // vertex shader
   string, // fragment shader
-  readonly string[], // uniforms
+  readonly string[], // uniforms (first one has to be the input texture)
   readonly (readonly [string, readonly number[]])[], // buffer attribute values
+  CompiledStepRenderer,
+  (readonly [number, number])?,
 ];
 
-export type CompiledProgram = readonly [
-  WebGLProgram,
+export type CompiledStep = readonly [
   readonly WebGLUniformLocation[],
-  readonly (readonly [number, WebGLBuffer])[],
 ];
 
-export function compileProgram(
+export function compileStep(
   gl: WebGLRenderingContext,
   [
     vertexShaderSource,
     fragmentShaderSource,
     uniforms,
     attributeValues,
-  ]: Program,
-): CompiledProgram {
+    renderer,
+    dimensions,
+  ]: StepDefinition,
+): StepRenderer {
   const [
     vertexShader,
     fragmentShader,
@@ -66,12 +79,41 @@ export function compileProgram(
     ] as const;
   });
   gl.useProgram(program);
-  const compiledProgram: CompiledProgram = [
-    program,
+  const compiledStep: CompiledStep = [
     uniformLocations,
-    buffers,
   ];
-  return compiledProgram;
+  return function (inputTextureIndex: number, outputTextureIndex: number) {
+    gl.useProgram(program);
+    gl.uniform1i(uniformLocations[0], inputTextureIndex);
+    buffers.map(function ([
+      attribute,
+      buffer,
+    ]) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.vertexAttribPointer(
+        attribute,
+        3,
+        gl.FLOAT,
+        false,
+        0,
+        0,
+      );
+      gl.enableVertexAttribArray(attribute);
+    });
+    const [
+      width,
+      height,
+    ] = dimensions || [
+      innerWidth,
+      innerHeight,
+    ];
+    // TODO can we reference the canvas directly?
+    gl.canvas.width = width;
+    gl.canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    renderer(compiledStep, inputTextureIndex, outputTextureIndex);
+  };
 }
 
 export type TextureDef =
