@@ -1,34 +1,27 @@
-import {
-  type Booleanish,
-  type Falsey,
-} from 'types';
+import { type Truthy } from 'types';
 
 export type Program = readonly [
-  HTMLCanvasElement, // target canvas
   string, // vertex shader
   string, // fragment shader
   readonly string[], // uniforms
-  readonly string[], // attributes
-  readonly (readonly [number, ...number[]])[], // buffer attribute values
-  readonly (HTMLCanvasElement | HTMLImageElement | Falsey)[],
+  readonly (readonly [string, readonly number[]])[], // buffer attribute values
 ];
 
-export type CompiledProgram = readonly [readonly WebGLUniformLocation[], readonly WebGLTexture[]];
+export type CompiledProgram = readonly [
+  WebGLProgram,
+  readonly WebGLUniformLocation[],
+  readonly (readonly [number, WebGLBuffer])[],
+];
 
-export function compileProgram([
-  c,
-  vertexShaderSource,
-  fragmentShaderSource,
-  uniforms,
-  attributes,
-  attributeValues,
-  texturesData,
-]: Program, discardDrawingBuffer: Booleanish): CompiledProgram {
-  const gl = c.getContext('webgl', {
-    preserveDrawingBuffer: !discardDrawingBuffer,
-    alpha: true,
-  })!;
-
+export function compileProgram(
+  gl: WebGLRenderingContext,
+  [
+    vertexShaderSource,
+    fragmentShaderSource,
+    uniforms,
+    attributeValues,
+  ]: Program,
+): CompiledProgram {
   const [
     vertexShader,
     fragmentShader,
@@ -55,59 +48,74 @@ export function compileProgram([
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error(gl.getProgramInfoLog(program)!);
   }
-  const attributeLocations = attributes.map(function (attribute) {
-    return gl.getAttribLocation(program, attribute);
-  });
   const uniformLocations = uniforms.map(function (uniform) {
     return gl.getUniformLocation(program, uniform)!;
   });
   // create the geometry (there's only ever one)
-  attributeValues.forEach(function (values, i) {
+  const buffers = attributeValues.map(function ([
+    attribute,
+    values,
+  ]) {
+    const attributeLocation = gl.getAttribLocation(program, attribute);
     const buffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
-    const [
-      numComponents,
-      ...data
-    ] = values;
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.vertexAttribPointer(
-      attributeLocations[i],
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset,
-    );
-    gl.enableVertexAttribArray(attributeLocations[i]);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(values), gl.STATIC_DRAW);
+    return [
+      attributeLocation,
+      buffer,
+    ] as const;
   });
   gl.useProgram(program);
-  // create the textures
-  const textures = texturesData.map(function (textureData, i) {
+  const compiledProgram: CompiledProgram = [
+    program,
+    uniformLocations,
+    buffers,
+  ];
+  return compiledProgram;
+}
+
+export type TextureDef =
+  | HTMLImageElement & { empty?: undefined }
+  | HTMLCanvasElement & { empty?: undefined }
+  | {
+    width?: number,
+    height?: number,
+    empty: Truthy,
+  };
+
+export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDef[]) {
+  return textureDefs.map(function (textureDef, i) {
     const texture = gl.createTexture()!;
     gl.activeTexture(gl.TEXTURE0 + i);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    if (textureData) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData);
+    if (textureDef.empty) {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        textureDef.width || innerWidth,
+        textureDef.height || innerHeight,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
     } else {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, c.width, c.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        textureDef as TexImageSource,
+      );
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // TODO make filter configurable (images = nearest, effects = linear)
-    const p = textureData ? gl.NEAREST : gl.LINEAR;
+    const p = textureDef.empty ? gl.LINEAR : gl.NEAREST;
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, p);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, p);
     return texture;
   });
-  return [
-    uniformLocations,
-    textures,
-  ];
 }

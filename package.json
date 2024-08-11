@@ -19,9 +19,9 @@
     "roadroller": "mkdirp dist/roadroller && roadroller dist/webpack/bundle.js -o dist/roadroller/bundle.js",
     "inline": "copyfiles --flat dist/webpack/index.html dist/roadroller && inliner dist/roadroller/index.html > dist/index.html",
     "zip": "advzip -4 -a dist/index.zip dist/index.html && dir dist\\index.zip",
-    "dist": "npm run build && npm run roadroller && npm run inline && npm run zip",
+    "dist": "npm run glslx:dist && npm run build && npm run roadroller && npm run inline && npm run zip",
     "lint": "eslint src",
-    "glslx": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js --renaming=internal-only --pretty-print",
+    "glslx": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js --renaming=internal-only --pretty-print && glslx glslx/crt.glslx --output=src/shaders/crt.js --format=js --renaming=internal-only --pretty-print",
     "glslx:watch": "npm-watch glslx",
     "glslx:dist": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js"
   },
