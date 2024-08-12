@@ -7,7 +7,6 @@ export type StepRenderer = (
 
 export type CompiledStepRenderer = (
   step: CompiledStep,
-  inputTextureIndex: number,
   outputTextureIndex: number,
 ) => void;
 
@@ -17,7 +16,6 @@ export type StepDefinition = readonly [
   readonly string[], // uniforms (first one has to be the input texture)
   readonly (readonly [string, readonly number[]])[], // buffer attribute values
   CompiledStepRenderer,
-  (readonly [number, number])?,
 ];
 
 export type CompiledStep = readonly [
@@ -32,7 +30,6 @@ export function compileStep(
     uniforms,
     attributeValues,
     renderer,
-    dimensions,
   ]: StepDefinition,
 ): StepRenderer {
   const [
@@ -100,19 +97,8 @@ export function compileStep(
       );
       gl.enableVertexAttribArray(attribute);
     });
-    const [
-      width,
-      height,
-    ] = dimensions || [
-      innerWidth,
-      innerHeight,
-    ];
-    // TODO can we reference the canvas directly?
-    gl.canvas.width = width;
-    gl.canvas.height = height;
-    gl.viewport(0, 0, width, height);
 
-    renderer(compiledStep, inputTextureIndex, outputTextureIndex);
+    renderer(compiledStep, outputTextureIndex);
   };
 }
 
@@ -153,8 +139,10 @@ export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDe
         textureDef as TexImageSource,
       );
     }
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // attachments must have CLAMP_TO_EDGE
+    const r = textureDef.empty ? gl.CLAMP_TO_EDGE : gl.REPEAT;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, r);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, r);
     const p = textureDef.empty ? gl.LINEAR : gl.NEAREST;
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, p);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, p);

@@ -109,6 +109,10 @@ const config = {
           from: './assets/c.png',
           to: 'c.png',
         },
+        {
+          from: './assets/b.bmp',
+          to: 'b.bmp',
+        },
       ],
     }),
     // new HtmlInlineScriptPlugin(),

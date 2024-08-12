@@ -22,6 +22,15 @@ import {
   GLSLX_SOURCE_VERTEX as CRT_BEND_SOURCE_VERTEX,
 } from './shaders/crt_bend';
 import {
+  GLSLX_NAME_A_MODEL_POSITION as CRT_PIXELATE_A_MODEL_POSITION,
+  GLSLX_NAME_U_MODEL_POSITION_TO_PIXEL_POSITION as CRT_PIXELATE_U_MODEL_POSITION_TO_PIXEL_POSITION,
+  GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION as CRT_PIXELATE_U_MODEL_POSITION_TO_SCREEN_POSITION,
+  GLSLX_NAME_U_PIXELS as CRT_PIXELATE_U_PIXELS,
+  GLSLX_NAME_U_TEXTURE as CRT_PIXELATE_U_TEXTURE,
+  GLSLX_SOURCE_FRAGMENT as CRT_PIXELATE_SOURCE_FRAGMENT,
+  GLSLX_SOURCE_VERTEX as CRT_PIXELATE_SOURCE_VERTEX,
+} from './shaders/crt_pixelate';
+import {
   GLSLX_NAME_A_MODEL_POSITION as OVERLAY_A_MODEL_POSITION,
   GLSLX_NAME_U_BACKGROUND as OVERLAY_U_BACKGROUND,
   GLSLX_NAME_U_LIGHT_NORMAL as OVERLAY_U_LIGHT_NORMAL,
@@ -34,281 +43,390 @@ import {
   GLSLX_SOURCE_VERTEX as OVERLAY_SOURCE_VERTEX,
 } from './shaders/overlay';
 
-const WIDTH = 256;
-const HEIGHT = 256;
+// changing these values results in a black screen?!
+const FIXED_WIDTH = 320;
+const FIXED_HEIGHT = 240;
 
-I.onload = function () {
-  const square = [
-    // 0
-    0,
-    0,
-    1,
-    // 1
-    1,
-    0,
-    1,
-    // 2
-    0,
-    1,
-    1,
-    // 3
-    1,
-    1,
-    1,
-  ] as const;
-  const transparent = document.createElement('canvas');
+// const transparent = document.createElement('canvas');
+const transparent = new Image(1, 1);
+transparent.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 
-  const TEXTURE_INDEX_PINGPONG_1 = 0;
-  const TEXTURE_INDEX_PINGPONG_2 = 1;
-  const TEXTURE_INDEX_OVERLAY_COPY = 2;
-  const TEXTURE_INDEX_SPRITE_SHEET = 3;
-  const TEXTURE_INDEX_TRANSPARENT = 4;
-  const TEXTURE_DEFS: TextureDef[] = [
-    // 0
-    {
-      empty: 1,
-      width: WIDTH,
-      height: HEIGHT,
-    },
-    // 1
-    {
-      empty: 1,
-      width: WIDTH,
-      height: HEIGHT,
-    },
-    // 2
-    {
-      empty: 1,
-      width: WIDTH,
-      height: HEIGHT,
-    },
-    // 3
-    I,
-    // 4
-    transparent,
-  ];
-  const gl = Z.getContext('webgl', {
-    preserveDrawingBuffer: true,
-  })!;
+// const ctx = transparent.getContext('2d', {
+//   alpha: true,
+// })!;
+// ctx.fillStyle = 'red';
+// ctx.fillRect(0, 0, transparent.width, transparent.height);
+// document.body.appendChild(transparent);
 
-  let textures: WebGLTexture[] = [];
-  let framebuffers: WebGLFramebuffer[] = [];
-  function setOutput(textureIndex: number) {
-    gl.activeTexture(gl.TEXTURE0 + textureIndex);
-    gl.bindTexture(gl.TEXTURE_2D, textures[textureIndex]);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[textureIndex]);
-  }
+const TEXTURE_INDEX_FIXED_1 = 0;
+const TEXTURE_INDEX_FIXED_2 = 1;
+const TEXTURE_INDEX_SCALED_1 = 2;
+const TEXTURE_INDEX_SCALED_2 = 3;
+const TEXTURE_INDEX_FIXED_COPY = 4;
+const TEXTURE_INDEX_SPRITE_SHEET = 5;
+const TEXTURE_INDEX_TRANSPARENT = 6;
+const TEXTURE_INDEX_CRT_PIXELS = 7;
+const TEXTURE_DEFS: TextureDef[] = [
+  // 0
+  {
+    empty: 1,
+    width: FIXED_WIDTH,
+    height: FIXED_HEIGHT,
+  },
+  // 1
+  {
+    empty: 1,
+    width: FIXED_WIDTH,
+    height: FIXED_HEIGHT,
+  },
+  // 2
+  {
+    empty: 1,
+  },
+  // 3
+  {
+    empty: 1,
+  },
+  // 4
+  {
+    empty: 1,
+    width: FIXED_WIDTH,
+    height: FIXED_HEIGHT,
+  },
+  // 5
+  I,
+  // 6
+  transparent,
+  // 7
+  B,
+];
 
-  function resize() {
-    textures.map(function (texture) {
-      gl.deleteTexture(texture);
-    });
-    framebuffers.map(function (framebuffer) {
-      gl.deleteFramebuffer(framebuffer);
-    });
-    textures = createTextures(gl, TEXTURE_DEFS);
-    framebuffers = textures.slice(0, TEXTURE_INDEX_SPRITE_SHEET).map(
-      function (texture) {
-        const fb = gl.createFramebuffer()!;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          texture,
-          0,
-        );
-        return fb;
-      },
-    );
-  }
-  onresize = resize;
-  resize();
+const SQUARE = [
+  // 0
+  0,
+  0,
+  1,
+  // 1
+  1,
+  0,
+  1,
+  // 2
+  0,
+  1,
+  1,
+  // 3
+  1,
+  1,
+  1,
+] as const;
 
-  const programs: StepDefinition[] = [
-    //
-    // overlay
-    //
-    [
-      OVERLAY_SOURCE_VERTEX,
-      OVERLAY_SOURCE_FRAGMENT,
+B.onload = function () {
+  I.onload = function () {
+    const gl = Z.getContext('webgl')!;
+
+    let textures: WebGLTexture[] = [];
+    let framebuffers: WebGLFramebuffer[] = [];
+    function setTarget(textureIndex: number) {
+      gl.activeTexture(gl.TEXTURE0 + textureIndex);
+      gl.bindTexture(gl.TEXTURE_2D, textures[textureIndex]);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[textureIndex]);
+    }
+
+    function resize() {
+      textures.map(function (texture) {
+        gl.deleteTexture(texture);
+      });
+      framebuffers.map(function (framebuffer) {
+        gl.deleteFramebuffer(framebuffer);
+      });
+      textures = createTextures(gl, TEXTURE_DEFS);
+      framebuffers = textures.slice(0, TEXTURE_INDEX_SPRITE_SHEET).map(
+        function (texture) {
+          const fb = gl.createFramebuffer()!;
+          gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            texture,
+            0,
+          );
+          return fb;
+        },
+      );
+    }
+    onresize = resize;
+    resize();
+
+    const programs: StepDefinition[] = [
+      //
+      // overlay
+      //
       [
-        OVERLAY_U_TEXTURE,
-        OVERLAY_U_BACKGROUND,
-        OVERLAY_U_MODEL_POSITION_TO_TEXTURE_COORD,
-        OVERLAY_U_MODEL_POSITION_TO_SCREEN_POSITION,
-        OVERLAY_U_SCREEN_POSITION_TO_BACKGROUND_COORD,
-        OVERLAY_U_PALETTE,
-        OVERLAY_U_LIGHT_NORMAL,
-      ],
-      [
+        OVERLAY_SOURCE_VERTEX,
+        OVERLAY_SOURCE_FRAGMENT,
         [
-          OVERLAY_A_MODEL_POSITION,
-          square,
+          OVERLAY_U_TEXTURE,
+          OVERLAY_U_BACKGROUND,
+          OVERLAY_U_MODEL_POSITION_TO_TEXTURE_COORD,
+          OVERLAY_U_MODEL_POSITION_TO_SCREEN_POSITION,
+          OVERLAY_U_SCREEN_POSITION_TO_BACKGROUND_COORD,
+          OVERLAY_U_PALETTE,
+          OVERLAY_U_LIGHT_NORMAL,
         ],
-      ],
-      function (
         [
           [
-            overlayUniformTexture,
-            overlayUniformBackground,
-            overlayUniformModelPositionToTextureCoord,
-            overlayUniformModelPositionToScreenPosition,
-            overlayUniformScreenPositionToBackgroundCoord,
-            overlayUniformPalette,
-            overlayUniformLightNormal,
+            OVERLAY_A_MODEL_POSITION,
+            SQUARE,
           ],
         ],
-        inputTextureIndex,
-        outputTextureIndex,
-      ) {
-        gl.uniformMatrix3fv(overlayUniformModelPositionToTextureCoord, false, IDENTITY);
-        gl.uniformMatrix3fv(overlayUniformScreenPositionToBackgroundCoord, false, multiply(
-          scale(.5, .5),
-          translate(1, 1),
-        ));
-        gl.uniform4fv(overlayUniformPalette, [
-          // 0 transparent
-          .5,
-          .5,
-          .5,
-          0,
-          // 1 yellow
-          .6,
-          .6,
-          0,
-          1,
-          // 2 dark
-          .2,
-          .2,
-          .2,
-          1,
-          // 3 metal
-          .2,
-          .4,
-          .8,
-          1,
-        ]);
-
-        gl.uniform3fv(
-          overlayUniformLightNormal,
-          normalize([
-            Math.random() * 2 - 1,
-            Math.random() * 2 - 1,
-            Math.random() * 2 - 1,
-          ]),
-        );
-        // clear the copy (may not be necessary)
-        setOutput(TEXTURE_INDEX_OVERLAY_COPY);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        for (let i = 0; i < 99; i++) {
-          const m = multiply(
-            translate(
-              -Math.round(Math.random() * WIDTH) / WIDTH,
-              1 - Math.round(Math.random() * HEIGHT) / HEIGHT,
-            ),
-            scale(1, -1),
+        function (
+          [
+            [
+              uniformTexture,
+              uniformBackground,
+              uniformModelPositionToTextureCoord,
+              uniformModelPositionToScreenPosition,
+              uniformScreenPositionToBackgroundCoord,
+              uniformPalette,
+              uniformLightNormal,
+            ],
+          ],
+          outputTextureIndex,
+        ) {
+          gl.uniformMatrix3fv(
+            uniformModelPositionToTextureCoord,
+            false,
+            IDENTITY,
           );
           gl.uniformMatrix3fv(
-            overlayUniformModelPositionToScreenPosition,
+            uniformScreenPositionToBackgroundCoord,
             false,
-            m,
+            multiply(
+              scale(.5, .5),
+              translate(1, 1),
+            ),
+          );
+          gl.uniform4fv(
+            uniformPalette,
+            [
+              // 0 transparent
+              .5,
+              .5,
+              .5,
+              0,
+              // 1 yellow
+              .6,
+              .6,
+              0,
+              1,
+              // 2 dark
+              .2,
+              .2,
+              .2,
+              1,
+              // 3 metal
+              .2,
+              .4,
+              .8,
+              1,
+            ],
           );
 
-          // update the target
-          setOutput(outputTextureIndex);
+          gl.uniform3fv(
+            uniformLightNormal,
+            normalize([
+              Math.random() * 2 - 1,
+              Math.random() * 2 - 1,
+              Math.random() * 2 - 1,
+            ]),
+          );
+          // clear the copy (may not be necessary)
+          setTarget(TEXTURE_INDEX_FIXED_COPY);
+          gl.clear(gl.COLOR_BUFFER_BIT);
 
-          gl.uniform1i(overlayUniformTexture, TEXTURE_INDEX_SPRITE_SHEET);
-          gl.uniform1i(overlayUniformBackground, TEXTURE_INDEX_OVERLAY_COPY);
+          for (let i = 0; i < 2; i++) {
+            const m = multiply(
+              translate(
+                -Math.round(Math.random() * FIXED_WIDTH) / FIXED_WIDTH,
+                1 - Math.round(Math.random() * FIXED_HEIGHT) / FIXED_HEIGHT,
+              ),
+              scale(1, -1),
+            );
+            gl.uniformMatrix3fv(
+              uniformModelPositionToScreenPosition,
+              false,
+              m,
+            );
+
+            // update the target
+            setTarget(outputTextureIndex);
+
+            gl.uniform1i(uniformTexture, TEXTURE_INDEX_SPRITE_SHEET);
+            gl.uniform1i(uniformBackground, TEXTURE_INDEX_FIXED_COPY);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            // update the copy
+            setTarget(TEXTURE_INDEX_FIXED_COPY);
+
+            gl.uniform1i(uniformTexture, TEXTURE_INDEX_TRANSPARENT);
+            // gl.uniform1i(uniformTexture, TEXTURE_INDEX_SPRITE_SHEET);
+            gl.uniform1i(uniformBackground, outputTextureIndex);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          }
+        },
+      ],
+      //
+      // CRT Pixelate
+      //
+      [
+        CRT_PIXELATE_SOURCE_VERTEX,
+        CRT_PIXELATE_SOURCE_FRAGMENT,
+        [
+          CRT_PIXELATE_U_TEXTURE,
+          CRT_PIXELATE_U_PIXELS,
+          CRT_PIXELATE_U_MODEL_POSITION_TO_SCREEN_POSITION,
+          CRT_PIXELATE_U_MODEL_POSITION_TO_PIXEL_POSITION,
+        ],
+        [
+          [
+            CRT_PIXELATE_A_MODEL_POSITION,
+            SQUARE,
+          ],
+        ],
+        function ([
+          [
+            _uniformTexture,
+            uniformPixels,
+            uniformModelPositionToScreenPosition,
+            uniformModelPositionToPixelPosition,
+          ],
+        ]) {
+          gl.uniformMatrix3fv(
+            uniformModelPositionToScreenPosition,
+            false,
+            multiply(
+              translate(-1, -1),
+              scale(2, 2),
+            ),
+          );
+          gl.uniform1i(
+            uniformPixels,
+            TEXTURE_INDEX_CRT_PIXELS,
+          );
+          gl.uniformMatrix3fv(
+            uniformModelPositionToPixelPosition,
+            false,
+            scale(
+              FIXED_WIDTH / B.width,
+              FIXED_HEIGHT / B.height,
+            ),
+          );
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-          // update the copy
-          setOutput(TEXTURE_INDEX_OVERLAY_COPY);
-
-          gl.uniform1i(overlayUniformTexture, TEXTURE_INDEX_TRANSPARENT);
-          gl.uniform1i(overlayUniformBackground, outputTextureIndex);
+        },
+      ],
+      //
+      // CRT Bend
+      //
+      [
+        CRT_BEND_SOURCE_VERTEX,
+        CRT_BEND_SOURCE_FRAGMENT,
+        [
+          CRT_BEND_U_TEXTURE,
+          CRT_BEND_U_SCALE,
+          CRT_BEND_U_MODEL_POSITION_TO_SCREEN_POSITION,
+          CRT_BEND_U_SCREEN_POSITION_TO_TEXTURE_COORD,
+        ],
+        [
+          [
+            CRT_BEND_A_MODEL_POSITION,
+            SQUARE,
+          ],
+        ],
+        function ([
+          [
+            _uniformTexture,
+            uniformScale,
+            uniformModelPositionToScreenPosition,
+            uniformScreenPositionToTextureCoord,
+          ],
+        ]) {
+          gl.uniform3f(uniformScale, .8, 3, 4);
+          gl.uniformMatrix3fv(
+            uniformScreenPositionToTextureCoord,
+            false,
+            multiply(
+              scale(.5, .5),
+              translate(1, 1),
+            ),
+          );
+          gl.uniformMatrix3fv(
+            uniformModelPositionToScreenPosition,
+            false,
+            multiply(
+              translate(-1, -1),
+              scale(2, 2),
+            ),
+          );
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        },
+      ],
+    ] as const;
+
+    const pipeline = programs.map(function (program) {
+      return compileStep(gl, program);
+    });
+    pipeline.splice(1, 1);
+
+    // gl.clearColor(1, 0, 1, 1);
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // setTarget(TEXTURE_INDEX_FIXED_2);
+    gl.clearColor(0, 0, 0, 0);
+
+    let count = 0;
+
+    function update() {
+      pipeline.reduce(function (inputTextureIndex, step, i) {
+        const scaled = i;
+        // can also do: startingIndex = Math.min(1, i) * 2;
+        const startingIndex = scaled ? TEXTURE_INDEX_SCALED_1 : TEXTURE_INDEX_FIXED_1;
+        const outputTextureIndex = i % 2 + startingIndex;
+        if (i == pipeline.length - 1) {
+          // render to screen
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        } else {
+          setTarget(outputTextureIndex);
         }
-      },
-      [
-        WIDTH,
-        HEIGHT,
-      ],
-    ],
-    //
-    // CRT
-    //
-    [
-      CRT_BEND_SOURCE_VERTEX,
-      CRT_BEND_SOURCE_FRAGMENT,
-      [
-        CRT_BEND_U_TEXTURE,
-        CRT_BEND_U_SCALE,
-        CRT_BEND_U_MODEL_POSITION_TO_SCREEN_POSITION,
-        CRT_BEND_U_SCREEN_POSITION_TO_TEXTURE_COORD,
-      ],
-      [
-        [
-          CRT_BEND_A_MODEL_POSITION,
-          square,
-        ],
-      ],
-      function ([
-        [
-          _crtUniformTexture,
-          crtUniformScale,
-          crtUniformModelPositionToScreenPosition,
-          crtUniformScreenPositionToTextureCoord,
-        ],
-      ]) {
-        gl.uniform3f(crtUniformScale, .8, 3, 4);
-        gl.uniformMatrix3fv(
-          crtUniformScreenPositionToTextureCoord,
-          false,
-          multiply(
-            scale(.5, .5),
-            translate(1, 1),
-          ),
-        );
-        gl.uniformMatrix3fv(
-          crtUniformModelPositionToScreenPosition,
-          false,
-          multiply(
-            translate(-1, -1),
-            scale(2, 2),
-          ),
-        );
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      },
-    ],
-  ] as const;
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
-  const pipeline = programs.map(function (program) {
-    return compileStep(gl, program);
-  });
+        const [
+          width,
+          height,
+        ] = scaled
+          ? [
+            innerWidth,
+            innerHeight,
+          ]
+          : [
+            FIXED_WIDTH,
+            FIXED_HEIGHT,
+          ];
+        Z.width = width;
+        Z.height = height;
+        gl.viewport(0, 0, width, height);
 
-  gl.clearColor(0, 0, 0, 0);
+        step(inputTextureIndex, outputTextureIndex);
+        return outputTextureIndex;
+      }, TEXTURE_INDEX_FIXED_2);
+      count++;
+      setTimeout(update, 1000 * count);
+    }
 
-  let count = 0;
-
-  function update() {
-    pipeline.reduce(function (inputTextureIndex, step, i) {
-      const outputTextureIndex = (inputTextureIndex - TEXTURE_INDEX_PINGPONG_1 + 1) % 2 + TEXTURE_INDEX_PINGPONG_1;
-      if (i == pipeline.length - 1) {
-        // render to screen
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      } else {
-        setOutput(outputTextureIndex);
-      }
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      step(inputTextureIndex, outputTextureIndex);
-      return outputTextureIndex;
-    }, TEXTURE_INDEX_PINGPONG_1);
-    count++;
-    setTimeout(update, 1000 * count);
-  }
-
-  update();
+    update();
+  };
+  I.src = 'c.png';
 };
-I.src = 'c.png';
+B.src = 'b.bmp';

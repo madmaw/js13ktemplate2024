@@ -23,7 +23,7 @@ export void fragment() {
     || textureCoord.x > 1.
     || textureCoord.y < 0.
     || textureCoord.y > 1.
-    ? vec4(0)
+    ? vec4(.5, 0, 1, 1)
     : texture2D(u_texture, textureCoord.xy);
   gl_FragColor = textureColor;
 }

@@ -21,9 +21,9 @@
     "zip": "advzip -4 -a dist/index.zip dist/index.html && dir dist\\index.zip",
     "dist": "npm run glslx:dist && npm run build && npm run roadroller && npm run inline && npm run zip",
     "lint": "eslint src",
-    "glslx": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js --renaming=internal-only --pretty-print && glslx glslx/crt_bend.glslx --output=src/shaders/crt_bend.js --format=js --renaming=internal-only --pretty-print",
+    "glslx": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js --renaming=internal-only --pretty-print && glslx glslx/crt_bend.glslx --output=src/shaders/crt_bend.js --format=js --renaming=internal-only --pretty-print && glslx glslx/crt_pixelate.glslx --output=src/shaders/crt_pixelate.js --format=js --renaming=internal-only --pretty-print",
     "glslx:watch": "npm-watch glslx",
-    "glslx:dist": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js"
+    "glslx:dist": "glslx glslx/overlay.glslx --output=src/shaders/overlay.js --format=js && glslx glslx/crt_bend.glslx --output=src/shaders/crt_bend.js --format=js && glslx glslx/crt_pixelate.glslx --output=src/shaders/crt_pixelate.js --format=js"
   },
   "author": "",
   "license": "ISC",
