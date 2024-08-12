@@ -13,14 +13,14 @@ import {
 // import b from '../assets/b.bmp';
 import { normalize } from 'math/vec';
 import {
-  GLSLX_NAME_A_MODEL_POSITION as CRT_A_MODEL_POSITION,
-  GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION as CRT_U_MODEL_POSITION_TO_SCREEN_POSITION,
-  GLSLX_NAME_U_SCANLINE_COLOR as CRT_U_SCANLINE_COLOR,
-  GLSLX_NAME_U_SCREEN_POSITION_TO_SCANLINE as CRT_U_SCREEN_POSITION_TO_SCANLINE,
-  GLSLX_NAME_U_TEXTURE as CRT_U_TEXTURE,
-  GLSLX_SOURCE_FRAGMENT as CRT_SOURCE_FRAGMENT,
-  GLSLX_SOURCE_VERTEX as CRT_SOURCE_VERTEX,
-} from './shaders/crt';
+  GLSLX_NAME_A_MODEL_POSITION as CRT_BEND_A_MODEL_POSITION,
+  GLSLX_NAME_U_MODEL_POSITION_TO_SCREEN_POSITION as CRT_BEND_U_MODEL_POSITION_TO_SCREEN_POSITION,
+  GLSLX_NAME_U_SCALE as CRT_BEND_U_SCALE,
+  GLSLX_NAME_U_SCREEN_POSITION_TO_TEXTURE_COORD as CRT_BEND_U_SCREEN_POSITION_TO_TEXTURE_COORD,
+  GLSLX_NAME_U_TEXTURE as CRT_BEND_U_TEXTURE,
+  GLSLX_SOURCE_FRAGMENT as CRT_BEND_SOURCE_FRAGMENT,
+  GLSLX_SOURCE_VERTEX as CRT_BEND_SOURCE_VERTEX,
+} from './shaders/crt_bend';
 import {
   GLSLX_NAME_A_MODEL_POSITION as OVERLAY_A_MODEL_POSITION,
   GLSLX_NAME_U_BACKGROUND as OVERLAY_U_BACKGROUND,
@@ -202,7 +202,7 @@ I.onload = function () {
         setOutput(TEXTURE_INDEX_OVERLAY_COPY);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 99; i++) {
           const m = multiply(
             translate(
               -Math.round(Math.random() * WIDTH) / WIDTH,
@@ -240,38 +240,44 @@ I.onload = function () {
     // CRT
     //
     [
-      CRT_SOURCE_VERTEX,
-      CRT_SOURCE_FRAGMENT,
+      CRT_BEND_SOURCE_VERTEX,
+      CRT_BEND_SOURCE_FRAGMENT,
       [
-        CRT_U_TEXTURE,
-        CRT_U_SCANLINE_COLOR,
-        CRT_U_MODEL_POSITION_TO_SCREEN_POSITION,
-        CRT_U_SCREEN_POSITION_TO_SCANLINE,
+        CRT_BEND_U_TEXTURE,
+        CRT_BEND_U_SCALE,
+        CRT_BEND_U_MODEL_POSITION_TO_SCREEN_POSITION,
+        CRT_BEND_U_SCREEN_POSITION_TO_TEXTURE_COORD,
       ],
       [
         [
-          CRT_A_MODEL_POSITION,
+          CRT_BEND_A_MODEL_POSITION,
           square,
         ],
       ],
       function ([
         [
           _crtUniformTexture,
-          crtUniformScanlineColor,
+          crtUniformScale,
           crtUniformModelPositionToScreenPosition,
-          crtUniformPositionToScanline,
+          crtUniformScreenPositionToTextureCoord,
         ],
       ]) {
-        gl.uniform4f(crtUniformScanlineColor, 0, 0, 0, .2);
+        gl.uniform3f(crtUniformScale, .8, 3, 4);
         gl.uniformMatrix3fv(
-          crtUniformPositionToScanline,
+          crtUniformScreenPositionToTextureCoord,
           false,
-          scale(1, HEIGHT / 4),
+          multiply(
+            scale(.5, .5),
+            translate(1, 1),
+          ),
         );
         gl.uniformMatrix3fv(
           crtUniformModelPositionToScreenPosition,
           false,
-          multiply(translate(-1, -1), scale(2, 2)),
+          multiply(
+            translate(-1, -1),
+            scale(2, 2),
+          ),
         );
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
