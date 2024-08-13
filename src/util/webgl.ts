@@ -18,9 +18,7 @@ export type StepDefinition = readonly [
   CompiledStepRenderer,
 ];
 
-export type CompiledStep = readonly [
-  readonly WebGLUniformLocation[],
-];
+export type CompiledStep = readonly WebGLUniformLocation[];
 
 export function compileStep(
   gl: WebGLRenderingContext,
@@ -76,9 +74,7 @@ export function compileStep(
     ] as const;
   });
   gl.useProgram(program);
-  const compiledStep: CompiledStep = [
-    uniformLocations,
-  ];
+  const compiledStep: CompiledStep = uniformLocations;
   return function (inputTextureIndex: number, outputTextureIndex: number) {
     gl.useProgram(program);
     gl.uniform1i(uniformLocations[0], inputTextureIndex);

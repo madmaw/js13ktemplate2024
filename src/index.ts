@@ -194,15 +194,13 @@ function imagesLoaded() {
       ],
       function (
         [
-          [
-            uniformTexture,
-            uniformBackground,
-            uniformModelPositionToTextureCoord,
-            uniformModelPositionToScreenPosition,
-            uniformScreenPositionToBackgroundCoord,
-            uniformPalette,
-            uniformLightNormal,
-          ],
+          uniformTexture,
+          uniformBackground,
+          uniformModelPositionToTextureCoord,
+          uniformModelPositionToScreenPosition,
+          uniformScreenPositionToBackgroundCoord,
+          uniformPalette,
+          uniformLightNormal,
         ],
         outputTextureIndex,
       ) {
@@ -307,12 +305,10 @@ function imagesLoaded() {
         ],
       ],
       function ([
-        [
-          _uniformTexture,
-          uniformPixels,
-          uniformModelPositionToScreenPosition,
-          uniformModelPositionToPixelPosition,
-        ],
+        _uniformTexture,
+        uniformPixels,
+        uniformModelPositionToScreenPosition,
+        uniformModelPositionToPixelPosition,
       ]) {
         gl.uniformMatrix3fv(
           uniformModelPositionToScreenPosition,
@@ -356,12 +352,10 @@ function imagesLoaded() {
         ],
       ],
       function ([
-        [
-          _uniformTexture,
-          uniformScale,
-          uniformModelPositionToScreenPosition,
-          uniformScreenPositionToTextureCoord,
-        ],
+        _uniformTexture,
+        uniformScale,
+        uniformModelPositionToScreenPosition,
+        uniformScreenPositionToTextureCoord,
       ]) {
         gl.uniform3f(uniformScale, .8, 3, 4);
         gl.uniformMatrix3fv(
