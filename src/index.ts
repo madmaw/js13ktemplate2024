@@ -11,6 +11,7 @@ import {
   type TextureDef,
 } from 'util/webgl';
 // import b from '../assets/b.bmp';
+import { FLAG_GENERATE_PIXELS } from 'flags';
 import { normalize } from 'math/vec';
 import {
   GLSLX_NAME_A_MODEL_POSITION as CRT_BEND_A_MODEL_POSITION,
@@ -54,9 +55,10 @@ const FIXED_HEIGHT = 240;
 // ctx.fillRect(0, 0, transparent.width, transparent.height);
 // document.body.appendChild(transparent);
 
-const images = [
+const images: (HTMLImageElement | HTMLCanvasElement)[] = [
+  // 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAQCAYAAAArij59AAAAAXNSR0IArs4c6QAAAWZJREFUKFNNkeFO2gAYRc9HAxRBoDhFqpmLbu//Ijjixo/92ACJUAShrYVaIHAXIEt2H+Dcc3NNy64oZwTUeeUBAa0/cB0B7grTS0ebmx1DXN65gbBOdQyfMyg4I2w2aCvyjCRXZJ80yEXnVD52NBRSyifYZN/W1Mpstk1ygUdtDv4+wc2P4XKF7fVdv7k64osx3A6hvgGqL/B1hkkd9fFZcEUpg/seuBlQn8J9gKV61DMXrLgjP4NWAJdboDyALwusF3WVFh0sOUfvHvlMNCyioph1JYf9+rFUw4mo7GM2Z2LegLRo2LKKFh42fZJOyOcjMnPF4F/lG1jalQ5yeK9HqUN6tAhpHqUt+inV1odZI/g2Q4j/Z1v/UfIVUshPUDMlaMIbZbYfPhZUsXF7rKoTsqtkhJ6ISwW2WQ2b1zlbOZjaC1E7vTMqOMz4xG5zizsEPwZTR+L69G9KiT53rClTm8DDBP4CJJO/dzetQusAAAAASUVORK5CYII=',
+  'b.bmp',
   'c.png', // sprite sheet
-  'b.bmp', // crt pixels
   'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', // transparent
 ].map(function (src) {
   const image = new Image();
@@ -69,19 +71,47 @@ const images = [
   image.src = src;
   return image;
 });
-const [
-  spritesheet,
-  crtPixels,
-] = images;
 let imageLoadCount = images.length;
+
+if (FLAG_GENERATE_PIXELS) {
+  const canvas = document.createElement('canvas');
+  const sqrt = 4;
+  const width = 8;
+  const height = 16;
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#CCC';
+  ctx.globalCompositeOperation = 'lighter';
+  const r = height / 4;
+  const count = sqrt * sqrt * 2 * 3;
+  const colors = [
+    '#300',
+    '#030',
+    '#003',
+  ];
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / (sqrt * 3));
+    const x = (i % (sqrt * 3)) * width / (sqrt - 1) - width / (row % 2 + 1);
+    const y = row * height / (sqrt - 1);
+    const gradient = ctx.createRadialGradient(x, y, r / 2, x, y, r);
+    gradient.addColorStop(0, colors[(i + row + row % 2) % colors.length]);
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+  }
+  console.log(canvas.toDataURL());
+  images[0] = canvas;
+}
 
 const TEXTURE_INDEX_FIXED_1 = 0;
 const TEXTURE_INDEX_FIXED_2 = 1;
 const TEXTURE_INDEX_SCALED_1 = 2;
 const TEXTURE_INDEX_SCALED_2 = 3;
 const TEXTURE_INDEX_FIXED_COPY = 4;
-const TEXTURE_INDEX_SPRITE_SHEET = 5;
-const TEXTURE_INDEX_CRT_PIXELS = 6;
+const TEXTURE_INDEX_CRT_PIXELS = 5;
+const TEXTURE_INDEX_SPRITE_SHEET = 6;
 const TEXTURE_INDEX_TRANSPARENT = 7;
 const TEXTURE_DEFS: TextureDef[] = [
   // 0
@@ -152,7 +182,7 @@ function imagesLoaded() {
       gl.deleteFramebuffer(framebuffer);
     });
     textures = createTextures(gl, TEXTURE_DEFS);
-    framebuffers = textures.slice(0, TEXTURE_INDEX_SPRITE_SHEET).map(
+    framebuffers = textures.slice(0, TEXTURE_INDEX_CRT_PIXELS).map(
       function (texture) {
         const fb = gl.createFramebuffer()!;
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -226,19 +256,19 @@ function imagesLoaded() {
             .5,
             0,
             // 1 yellow
-            .6,
-            .6,
-            0,
+            .8,
+            .8,
+            .2,
             1,
             // 2 dark
-            .2,
-            .2,
-            .2,
+            .5,
+            .4,
+            .4,
             1,
             // 3 metal
-            .2,
-            .4,
-            .8,
+            .3,
+            .5,
+            1,
             1,
           ],
         );
@@ -255,7 +285,7 @@ function imagesLoaded() {
         setTarget(TEXTURE_INDEX_FIXED_COPY);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 9; i++) {
           const m = multiply(
             translate(
               -Math.round(Math.random() * FIXED_WIDTH) / FIXED_WIDTH,
@@ -326,8 +356,8 @@ function imagesLoaded() {
           uniformModelPositionToPixelPosition,
           false,
           scale(
-            FIXED_WIDTH / crtPixels.width,
-            FIXED_HEIGHT / crtPixels.height,
+            FIXED_WIDTH * 20,
+            FIXED_HEIGHT * 20,
           ),
         );
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -357,7 +387,7 @@ function imagesLoaded() {
         uniformModelPositionToScreenPosition,
         uniformScreenPositionToTextureCoord,
       ]) {
-        gl.uniform3f(uniformScale, .8, 3, 4);
+        gl.uniform3f(uniformScale, .8, 2, 2);
         gl.uniformMatrix3fv(
           uniformScreenPositionToTextureCoord,
           false,

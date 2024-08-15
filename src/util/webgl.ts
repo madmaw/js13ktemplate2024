@@ -135,7 +135,7 @@ export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDe
         textureDef as TexImageSource,
       );
     }
-    // attachments must have CLAMP_TO_EDGE
+    // anything non-power of two must be CLAMP_TO_EDGE, assume any resources are po2
     const r = textureDef.empty ? gl.CLAMP_TO_EDGE : gl.REPEAT;
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, r);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, r);
