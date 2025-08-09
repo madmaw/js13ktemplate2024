@@ -1,26 +1,28 @@
-import { type Truthy } from 'types';
+import type { Truthy } from "types";
 
-export type StepRenderer = (
+export type StepRenderer<GameState> = (
+  gameState: GameState,
   inputTextureIndex: number,
   outputTextureIndex: number,
 ) => void;
 
-export type CompiledStepRenderer = (
+export type CompiledStepRenderer<GameState> = (
   step: CompiledStep,
+  gameState: GameState,
   outputTextureIndex: number,
 ) => void;
 
-export type StepDefinition = readonly [
+export type StepDefinition<GameState> = readonly [
   string, // vertex shader
   string, // fragment shader
   readonly string[], // uniforms (first one has to be the input texture)
   readonly (readonly [string, readonly number[]])[], // buffer attribute values
-  CompiledStepRenderer,
+  CompiledStepRenderer<GameState>,
 ];
 
 export type CompiledStep = readonly WebGLUniformLocation[];
 
-export function compileStep(
+export function compileStep<GameState>(
   gl: WebGLRenderingContext,
   [
     vertexShaderSource,
@@ -28,88 +30,75 @@ export function compileStep(
     uniforms,
     attributeValues,
     renderer,
-  ]: StepDefinition,
-): StepRenderer {
-  const [
-    vertexShader,
-    fragmentShader,
-  ] = [
+  ]: StepDefinition<GameState>,
+): StepRenderer<GameState> {
+  const [vertexShader, fragmentShader] = [
     fragmentShaderSource,
     vertexShaderSource,
-  ].map(function (source, i) {
+  ].map((source, i) => {
     const shader = gl.createShader(gl.FRAGMENT_SHADER + i)!;
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      source.split('\n').map(function (line, lineNumber) {
-        // eslint-disable-next-line no-console
-        console.log(lineNumber + 1, line);
+      source.split("\n").map((line, lineNumber) => {
+        console.error(lineNumber + 1, line);
       });
       throw new Error(gl.getShaderInfoLog(shader)!);
     }
     return shader;
   });
-  const program = gl.createProgram()!;
+  const program = gl.createProgram();
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error(gl.getProgramInfoLog(program)!);
   }
-  const uniformLocations = uniforms.map(function (uniform) {
-    return gl.getUniformLocation(program, uniform)!;
-  });
+  const uniformLocations = uniforms.map(
+    (uniform) => gl.getUniformLocation(program, uniform)!,
+  );
   // create the geometry (there's only ever one)
-  const buffers = attributeValues.map(function ([
-    attribute,
-    values,
-  ]) {
+  const buffers = attributeValues.map(([attribute, values]) => {
     const attributeLocation = gl.getAttribLocation(program, attribute);
-    const buffer = gl.createBuffer()!;
+    const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(values), gl.STATIC_DRAW);
-    return [
-      attributeLocation,
-      buffer,
-    ] as const;
+    return [attributeLocation, buffer] as const;
   });
   gl.useProgram(program);
   const compiledStep: CompiledStep = uniformLocations;
-  return function (inputTextureIndex: number, outputTextureIndex: number) {
+  return (
+    gameState: GameState,
+    inputTextureIndex: number,
+    outputTextureIndex: number,
+  ) => {
     gl.useProgram(program);
     gl.uniform1i(uniformLocations[0], inputTextureIndex);
-    buffers.map(function ([
-      attribute,
-      buffer,
-    ]) {
+    buffers.map(([attribute, buffer]) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.vertexAttribPointer(
-        attribute,
-        3,
-        gl.FLOAT,
-        false,
-        0,
-        0,
-      );
+      gl.vertexAttribPointer(attribute, 3, gl.FLOAT, false, 0, 0);
       gl.enableVertexAttribArray(attribute);
     });
 
-    renderer(compiledStep, outputTextureIndex);
+    renderer(compiledStep, gameState, outputTextureIndex);
   };
 }
 
 export type TextureDef =
-  | HTMLImageElement & { empty?: undefined }
-  | HTMLCanvasElement & { empty?: undefined }
+  | (HTMLImageElement & { empty?: undefined })
+  | (HTMLCanvasElement & { empty?: undefined })
   | {
-    width?: number,
-    height?: number,
-    empty: Truthy,
-  };
+      width?: number;
+      height?: number;
+      empty: Truthy;
+    };
 
-export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDef[]) {
-  return textureDefs.map(function (textureDef, i) {
-    const texture = gl.createTexture()!;
+export function createTextures(
+  gl: WebGLRenderingContext,
+  textureDefs: TextureDef[],
+) {
+  return textureDefs.map((textureDef, i) => {
+    const texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0 + i);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     if (textureDef.empty) {
@@ -117,8 +106,8 @@ export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDe
         gl.TEXTURE_2D,
         0,
         gl.RGBA,
-        textureDef.width || innerWidth,
-        textureDef.height || innerHeight,
+        textureDef.width ?? innerWidth,
+        textureDef.height ?? innerHeight,
         0,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
@@ -131,7 +120,7 @@ export function createTextures(gl: WebGLRenderingContext, textureDefs: TextureDe
         gl.RGBA,
         gl.RGBA,
         gl.UNSIGNED_BYTE,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+
         textureDef as TexImageSource,
       );
     }

@@ -1,38 +1,31 @@
 /* eslint-env node */
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const path = require('path');
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const path = require("node:path");
 // import { type Configuration } from 'webpack';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const ClosureWebpackPlugin = require('closure-webpack-plugin');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const ClosureWebpackPlugin = require("closure-webpack-plugin");
+const ReplaceInFileWebpackPlugin = require("replace-in-file-webpack-plugin");
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
 // has to be a JS file so TS doesn't have a fit with the imports
 // TODO: perhaps could be overcome by having a separate tsconfig.json in the src folder?
 // @ts-check
 /** @type {ClosurePlugin} */
 const config = {
-  target: 'web',
-  entry: './src/index.ts',
-  devtool: 'source-map',
+  devtool: "source-map",
+  entry: "./src/index.ts",
   module: {
     rules: [
       {
-        test: /\.tsx?$/i,
-        use: 'ts-loader',
         exclude: /node_modules/,
+        test: /\.tsx?$/i,
+        use: "ts-loader",
       },
       {
         test: /\.(png|jpg|gif|bmp)$/i,
         use: [
           {
-            loader: 'url-loader',
+            loader: "url-loader",
             options: {
               limit: 8192,
             },
@@ -41,64 +34,59 @@ const config = {
       },
     ],
   },
-  resolve: {
-    plugins: [new TsconfigPathsPlugin()],
-    extensions: [
-      '.tsx',
-      '.ts',
-      '.js',
+  optimization: {
+    minimizer: [
+      new ClosureWebpackPlugin(
+        {
+          mode: "STANDARD",
+          // more fully-featured? Also doesn't work
+          // platform: 'java',
+        },
+        {
+          compilation_level: "ADVANCED",
+          externs: path.resolve(__dirname, "externs.js"),
+          module_resolution: "WEBPACK",
+        },
+      ),
     ],
   },
   output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist/webpack'),
+    filename: "bundle.js",
     // this does nothing when combined with the closure plugin :(
     iife: false,
-  },
-  optimization: {
-    minimizer: [
-      new ClosureWebpackPlugin({
-        mode: 'STANDARD',
-        // more fully-featured? Also doesn't work
-        // platform: 'java',
-      }, {
-        externs: path.resolve(__dirname, 'externs.js'),
-        compilation_level: 'ADVANCED',
-        module_resolution: 'WEBPACK',
-      }),
-    ],
+    path: path.resolve(__dirname, "dist/webpack"),
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'assets/index.html',
-      scriptLoading: 'blocking',
       minify: {
         collapseWhitespace: true,
         keepClosingSlash: true,
+        minifyCSS: true,
+        removeAttributeQuotes: true,
         removeComments: true,
+        removeOptionalTags: true,
         removeRedundantAttributes: true,
         removeScriptTypeAttributes: true,
         removeStyleLinkTypeAttributes: true,
         useShortDoctype: true,
-        minifyCSS: true,
-        removeOptionalTags: true,
-        removeAttributeQuotes: true,
       },
+      scriptLoading: "blocking",
+      template: "assets/index.html",
     }),
     new ReplaceInFileWebpackPlugin([
       {
-        dir: path.resolve(__dirname, 'dist/webpack'),
-        files: ['bundle.js'],
+        dir: path.resolve(__dirname, "dist/webpack"),
+        files: ["bundle.js"],
         rules: [
           // remove iife start
           {
+            replace: "",
             search: /^\(function\(\)\{/g,
-            replace: '',
           },
           // remove iife end
           {
+            replace: "",
             search: /;\}\)\.call\(this \|\| window\)\n$/,
-            replace: '',
           },
         ],
       },
@@ -106,17 +94,25 @@ const config = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: './assets/c.png',
-          to: 'c.png',
+          from: "./assets/c.png",
+          to: "c.png",
         },
         {
-          from: './assets/b.bmp',
-          to: 'b.bmp',
+          from: "./assets/b.bmp",
+          to: "b.bmp",
         },
       ],
     }),
     // new HtmlInlineScriptPlugin(),
   ],
+  resolve: {
+    alias: {
+      shaders: path.resolve(__dirname, "gen/shaders"),
+    },
+    extensions: [".tsx", ".ts", ".js"],
+    plugins: [new TsconfigPathsPlugin()],
+  },
+  target: "web",
 };
 
 module.exports = config;

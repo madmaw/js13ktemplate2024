@@ -1,0 +1,161 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": ["**/*.css"]
+          }
+        },
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on"
+      }
+    },
+    "enabled": true
+  },
+  "css": {
+    "parser": {
+      "cssModules": true
+    }
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/build/**",
+      "!**/dist/**",
+      "!**/node_modules/**",
+      "!**/locales/*.ts",
+      "!**/public/**",
+      "!**/*.po",
+      "!**/*.snap",
+      "!**/*.local.*",
+      "!gen/**"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useAltText": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off",
+        "noForEach": "off"
+      },
+      "correctness": {
+        "noUnreachable": "error",
+        "noUnusedFunctionParameters": {
+          "fix": "none",
+          "level": "warn"
+        },
+        "noUnusedImports": {
+          "fix": "none",
+          "level": "warn"
+        },
+        "noUnusedPrivateClassMembers": {
+          "fix": "none",
+          "level": "warn"
+        },
+        "noUnusedVariables": {
+          "fix": "none",
+          "level": "warn"
+        },
+        "useExhaustiveDependencies": {
+          "fix": "none",
+          "level": "error",
+          "options": {
+            "hooks": [
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useCancellablePromiseCallback"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useStableObserverComponent"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useDeferredEffect"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useEChart"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useReasonableDataResolution"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useMemoWithUpdate"
+              },
+              {
+                "closureIndex": 0,
+                "dependenciesIndex": 1,
+                "name": "useUpdate"
+              }
+            ]
+          }
+        }
+      },
+      "recommended": true,
+      "style": {
+        "noInferrableTypes": "error",
+        "noNegationElse": "error",
+        "noNonNullAssertion": "off",
+        "noUnusedTemplateLiteral": "error",
+        "noUselessElse": "error",
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error",
+        "useConst": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useNumberNamespace": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error"
+      },
+      "suspicious": {
+        "noConsole": {
+          "fix": "none",
+          "level": "error",
+          "options": {
+            "allow": ["error", "warn"]
+          }
+        },
+        "noDoubleEquals": "off",
+        "noGlobalAssign": "off"
+      }
+    }
+  }
+}
